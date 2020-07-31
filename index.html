@@ -24,7 +24,7 @@
 let canvasWidth,canvasHeight,ctx,myInterval,
     size=20, //画正方形的大小
     row,col, //画布总共有几行几列
-    currentList=[],current,//当前移动的是方块所所占方块
+    currentList=[],current,currentNumber,//当前移动的是方块所所占方块
     existList=[]   //已经下去的方块位置集合
 ;
 window.onload=function () {
@@ -60,16 +60,19 @@ function init() {
   //总共多少列
   col=canvasWidth/size
 
-  random(col/2+col*2);
+  currentNumber=col/2;
+  current = getNumRepeat(5);
+  random(current);
+  setMyInterval()
 }
 
 function setMyInterval() {
-  let number =col/2;
+
   myInterval=setInterval(function () {
     ctx.clearRect(0,0,canvasWidth,canvasHeight);
 
-    number += col;
-
+    currentNumber += col;
+    random(current);
 
   },100)
 }
@@ -84,10 +87,6 @@ function drawSquare(number) {
     //判断该编号在几排几列
     let numberCol=number%col==0?col:number%col;
     let numberRow=Math.ceil(Math.abs(number-numberCol)/col)+1
-
-    if(numberRow>=row){
-      clearInterval(myInterval)
-    }
 
     //根据行列获取坐标
     let numberX=(numberCol-1)*size;
@@ -106,22 +105,29 @@ function drawSquare(number) {
 }
 
 //随机生成一个方块在顶部开始下落
-function random(number) {
-  //随机生成1——5的数字
-  switch (getNumRepeat(5)) {
-    case 1:drawI(number);break;
-    case 2:drawL(number);break;
-    case 3:drawO(number);break;
-    case 4:drawT(number);break;
-    case 5:drawZ(number);break;
+function random(current) {
+  let number=col/2;
+  switch (current) {
+    case 1:currentList=[number,number-col,number-col*2,number-col*3];break;
+    case 2:currentList=[number,number+1,number-col,number-col*2];break;
+    case 3:currentList=[number,number+1,number-col,number-col+1];break;
+    case 4:currentList=[number,number-col,number-col-1,number-col+1];break;
+    case 5:currentList=[number,number+1,number-col,number-col-1];break;
   }
 }
+//随机生成1——5的数字
 function getNumRepeat (maxNum) {
   return Math.floor(Math.random()*maxNum)+1;
 }
 /**
- *生成五种方块
+ *生成五种方块I,L,O,T,Z
  */
+function drawBlock() {
+  currentList.map((item,index)=>{
+    drawSquare(item);
+  })
+}
+
 function drawI(number) {
   drawSquare(number)
   drawSquare(number-col)
