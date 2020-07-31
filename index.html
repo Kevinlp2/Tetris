@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>俄罗斯方块</title>
+  <style>
+    .box{
+      width: 400px;
+      height: 600px;
+      margin: 0 auto;
+      border: #555555 solid 1px;
+    }
+  </style>
+</head>
+<body>
+<div class="box">
+<canvas id="mycanvas" width="400px" height="600px"></canvas>
+
+<script>
+/**
+ 思路：将画布分成等宽高的正方形并进行编号，不同的方块占不同的编号格
+  */
+
+let canvasWidth,canvasHeight,ctx,myInterval,
+    size=20, //画正方形的大小
+    row,col, //画布总共有几行几列
+    currentList=[],current,//当前移动的是方块所所占方块
+    existList=[]   //已经下去的方块位置集合
+;
+window.onload=function () {
+  let mycanvas = document.getElementById('mycanvas');
+  ctx = mycanvas.getContext('2d');
+  canvasWidth=mycanvas.width;
+  canvasHeight=mycanvas.height;
+
+  //监听键盘的上右下左，方向不能逆向该变
+  // document.onkeydown = function (event) {
+  //   let e = event || window.event || arguments.callee.caller.arguments[0];
+  //   if (e && e.keyCode == 40) { //下
+  //
+  //   }else  if (e && e.keyCode == 37) { //左
+  //
+  //   }else if (e && e.keyCode == 39) { //右
+  //
+  //   }
+  //   else if (e && e.keyCode == 38) { // 上
+  //
+  //   }
+  //
+  // };
+
+
+  // setMyInterval()
+  init()
+}
+
+function init() {
+  //总共多少行
+  row=canvasHeight/size;
+  //总共多少列
+  col=canvasWidth/size
+
+  random(col/2+col*2);
+}
+
+function setMyInterval() {
+  let number =col/2;
+  myInterval=setInterval(function () {
+    ctx.clearRect(0,0,canvasWidth,canvasHeight);
+
+    number += col;
+
+
+  },100)
+}
+//根据不同的编号画出一个正方形
+function drawSquare(number) {
+
+  //获取总的编号
+  let count = row*col;
+
+  //传入的编号不得大于总编号
+  if(number>0 && number<=count){
+    //判断该编号在几排几列
+    let numberCol=number%col==0?col:number%col;
+    let numberRow=Math.ceil(Math.abs(number-numberCol)/col)+1
+
+    if(numberRow>=row){
+      clearInterval(myInterval)
+    }
+
+    //根据行列获取坐标
+    let numberX=(numberCol-1)*size;
+    let numberY=(numberRow-1)*size;
+
+
+    //根据坐标画正方形
+    ctx.fillStyle='#555555';
+    ctx.fillRect(numberX,numberY,size,size)
+    ctx.beginPath();
+    ctx.lineWidth='2'
+    ctx.strokeStyle='#000'
+    ctx.rect(numberX,numberY,size,size)
+    ctx.stroke()
+  }
+}
+
+//随机生成一个方块在顶部开始下落
+function random(number) {
+  //随机生成1——5的数字
+  switch (getNumRepeat(5)) {
+    case 1:drawI(number);break;
+    case 2:drawL(number);break;
+    case 3:drawO(number);break;
+    case 4:drawT(number);break;
+    case 5:drawZ(number);break;
+  }
+}
+function getNumRepeat (maxNum) {
+  return Math.floor(Math.random()*maxNum)+1;
+}
+/**
+ *生成五种方块
+ */
+function drawI(number) {
+  drawSquare(number)
+  drawSquare(number-col)
+  drawSquare(number-col*2)
+  drawSquare(number-col*3)
+}
+function drawL(number) {
+  drawSquare(number)
+  drawSquare(number+1)
+  drawSquare(number-col)
+  drawSquare(number-col*2)
+}
+function drawO(number) {
+  drawSquare(number)
+  drawSquare(number+1)
+  drawSquare(number-col)
+  drawSquare(number-col+1)
+}
+function drawT(number) {
+  drawSquare(number)
+  drawSquare(number-col)
+  drawSquare(number-col+1)
+  drawSquare(number-col-1)
+}
+function drawZ(number) {
+  drawSquare(number)
+  drawSquare(number+1)
+  drawSquare(number-col)
+  drawSquare(number-col-1)
+}
+
+</script>
+</div>
+</body>
+</html>
