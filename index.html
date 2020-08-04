@@ -9,13 +9,17 @@
       height: 600px;
       margin: 0 auto;
       border: #555555 solid 1px;
+      /*display: flex;*/
     }
+
   </style>
 </head>
 <body>
 <div class="box">
 <canvas id="mycanvas" width="400px" height="600px"></canvas>
-
+<div>
+  分数：<span id="score"></span>
+</div>
 <script>
 /**
  思路：将画布分成等宽高的正方形并进行编号，不同的方块占不同的编号格
@@ -25,7 +29,11 @@ let canvasWidth,canvasHeight,ctx,myInterval,
     size=20, //画正方形的大小
     row,col, //画布总共有几行几列
     currentList=[],current,currentNumber,//当前移动的是方块所所占方块
-    existList=[]   //已经下去的方块位置集合
+    currentDirection=2, //方块的方向 0 上，1 右，2 下，3 左
+    existList=[],   //已经下去的方块位置集合
+    time=200,
+    twoArray=new Array(),
+    score=0;
 ;
 window.onload=function () {
   let mycanvas = document.getElementById('mycanvas');
@@ -34,65 +42,287 @@ window.onload=function () {
   canvasHeight=mycanvas.height;
 
   //监听键盘的上右下左，方向不能逆向该变
-  // document.onkeydown = function (event) {
-  //   let e = event || window.event || arguments.callee.caller.arguments[0];
-  //   if (e && e.keyCode == 40) { //下
-  //
-  //   }else  if (e && e.keyCode == 37) { //左
-  //
-  //   }else if (e && e.keyCode == 39) { //右
-  //
-  //   }
-  //   else if (e && e.keyCode == 38) { // 上
-  //
-  //   }
-  //
-  // };
-
-
-  // setMyInterval()
+  document.onkeydown = event=> myKeyDown(event);
   init()
-}
 
+
+
+}
+//初始化方法
 function init() {
   //总共多少行
   row=canvasHeight/size;
   //总共多少列
   col=canvasWidth/size
-
   currentNumber=col/2;
-  current = getNumRepeat(5);
-  random(current);
+
+  document.getElementById('score').innerHTML=score;
+
+  //生成对应棋盘的二维数组
+  for (let i = 0; i <row ; i++) {
+    twoArray[i]=new Array();
+    for (let j = 0; j <col ; j++) {
+      twoArray[i][j]=false;
+    }
+  }
+
+  random();
+  drawaAll();
   setMyInterval()
 }
 
-function setMyInterval() {
+//监听键盘方法
+function myKeyDown(event) {
+  let isError=false;
+  let e = event || window.event || arguments.callee.caller.arguments[0];
+  if (e && e.keyCode == 40) { //下
+    let num=0;
+    currentList.map((item,index)=>{
+      if(isErr(item+col)){
+        num++;
+      }
+    })
+    if(num==4){
+      currentList.map((item,index)=>{
+        currentList.splice(index,1,item+col)
+      })
+    }
+  }else  if (e && e.keyCode == 37) { //左
+    //判断方块是否已经靠到左边或左边已存在方块
+    currentList.map((item,index)=>{
+      let numberCol=item%col==0?col:item%col;
+      if(numberCol==1) isError=true;
+      existList.map((item1,index1)=>{
+        if(item-1 == item1 || item-1+col == item1) isError=true;
+      })
+    })
+    if(!isError){
+      currentList.map((item,index)=>{
+        currentList.splice(index,1,item-1)
+      })
+    }
+  }else if (e && e.keyCode == 39) { //右
+    //判断方块是否已经靠到右边或右边已存在方块
+    currentList.map((item,index)=>{
+      let numberCol=item%col==0?col:item%col;
+      if(numberCol==col){
+        isError=true;
+      }
+      existList.map((item1,index1)=>{
+        if(item+1 == item1 ||  item+1+col == item1) isError=true;
+      })
+    })
+    if(!isError){
+      currentList.map((item,index)=>{
+        currentList.splice(index,1,item+1)
+      })
+    }
+  }
+  else if (e && e.keyCode == 38) { // 上
+    rotate();
+  }
 
+}
+
+//定时方法
+function setMyInterval() {
   myInterval=setInterval(function () {
     ctx.clearRect(0,0,canvasWidth,canvasHeight);
+    //判断是否触底
+    if(isMoveDown()){
+      touchBottom();
+    } else {
+      currentList.map((item,index)=>{
+        currentList.splice(index,1,item+col)
+      })
+      collision();
 
-    currentNumber += col;
-    random(current);
+      //死亡判定
+      existList.map((item,index)=>{
+        if(item<0){
+          console.log('over,分数为:',score)
+          clearInterval(myInterval)
+        }
+      })
+    }
+    drawaAll();
+  },time)
+}
+//判断该编号向下移动是否碰到底边界
+function isMoveDown() {
+  let ret=false;
+  currentList.map((item,index)=>{
+    let numberCol=item%col==0?col:item%col;
+    let numberRow=Math.ceil(Math.abs(item-numberCol)/col)+1
+    if(numberRow==row) ret=true;
+  })
+  return ret;
+}
+//方块触底后执行的方法
+function touchBottom () {
+  //碰到底就加入到已存在中
+  existList.push(...currentList);
+  setTwoArray(...currentList)
 
-  },100)
+  random();
+  currentDirection=2;
+
+}
+
+//判断移动的方块是否与已存在的方块碰撞
+function collision() {
+  let ret = false;
+  if(currentList.length>0 && existList.length>0){
+    currentList.map((item,index)=>{
+      existList.map((item1,index1)=>{
+        if(item+col ==item1){
+          ret=true;
+        }
+      })
+    })
+  }
+  if(ret){
+    existList.push(...currentList);
+    setTwoArray(...currentList)
+
+    random();
+    currentDirection=2;
+  }
+}
+
+//根据编号改变二维数组值
+function setTwoArray(...number) {
+
+  number.map((item,index)=>{
+    let numberCol=item%col==0?col-1:item%col-1;
+    let numberRow=Math.ceil(Math.abs(item-(numberCol+1))/col)
+    twoArray[numberRow][numberCol]=true;
+    // console.log(numberCol,numberRow)
+  })
+
+  eliminate()
+}
+
+//判断二维数组一行是否填满，填满就消除一行
+function eliminate() {
+
+  twoArray.map((item,index)=>{
+    //判断一行是否都是true，是则消除这一行
+    if(item.every(item1=>{return item1==true})) {
+      score++;
+      document.getElementById('score').innerHTML=score;
+      twoArray.splice(index,1);
+      let addArray=[];
+      for (let i = 0; i <col ; i++) {
+        addArray.push(false);
+      }
+      twoArray.unshift(addArray);
+      twoArrToExist();
+      // clearInterval(myInterval)
+    }
+
+  })
+}
+
+//根据二维数组的变化改变已存在的数组
+function twoArrToExist() {
+  ctx.clearRect(0,0,canvasWidth,canvasHeight);
+  existList=[];
+  //遍历行数，0开始
+  twoArray.map((item,index)=>{
+    //遍历列数，0开始
+    item.map((item1,index1)=>{
+      if(item1){
+          existList.push(index1+1+index*col)
+      }
+    })
+  })
+  drawaAll();
+}
+
+//方块旋转的方法，顺时针旋转
+/**
+ * currentList是正在下落方块的位置集合
+ */
+function rotate() {
+  //方块O不变形
+  if(current==3){
+    return
+  }
+  if(current == 1){ //方块I
+    let num = currentList[2];
+    if(currentDirection==0 || currentDirection==2){
+      rotateJudge(num-2,num-1,num,num+1);
+    }else if(currentDirection==1 || currentDirection==3){
+      rotateJudge(num+col*2,num+col,num,num-col);
+    }
+  }else if(current == 2){//方块L
+    let num=currentList[2];
+    switch (currentDirection) {
+      case 3:rotateJudge(num-col-1,num-col,num,num+col);break;
+      case 0:rotateJudge(num-col+1,num+1,num,num-1);break;
+      case 1:rotateJudge(num+1+col,num-col,num,num+col);break;
+      case 2:rotateJudge(num-1+col,num-1,num,num+1);break;
+    }
+  }else if(current == 4){//方块T
+    let num=currentList[2];
+    switch (currentDirection) {
+      case 3:rotateJudge(num-col,num-1,num,num+1);break;
+      case 0:rotateJudge(num+1,num-col,num,num+col);break;
+      case 1:rotateJudge(num+col,num+1,num,num-1);break;
+      case 2:rotateJudge(num-1,num+col,num,num-col);break;
+    }
+  }else if(current == 5){//方块Z
+    let num=currentList[2];
+    if(currentDirection==0 || currentDirection==2){
+      rotateJudge(num-1+col,num-1,num,num-col);
+    }else if(currentDirection==1 || currentDirection==3){
+      rotateJudge(num+col+1,num+col,num,num-1);
+    }
+  }
+}
+
+function rotateJudge(...arr) {
+  currentList=[]
+  if(arr.every(item=> {return isErr(item)})){
+    arr.map(item=>{currentList.push(item)})
+    //改变移动方向
+    currentDirection= currentDirection==3?0: currentDirection+1;
+  }
+}
+//判断变形的方块是否碰边和是否与已有方块重合
+function isErr(number) {
+  let ret = true;
+  //判断该编号在几排几列
+  let numberCol=number%col==0?col:number%col;
+  let numberRow=Math.ceil(Math.abs(number-numberCol)/col)+1
+
+
+
+  if(numberCol<1 || numberCol>col || numberRow>row){
+    ret=false
+  }else {
+    //遍历已存在的
+    existList.map((item,index)=>{
+      if(item==number){
+        ret=false;
+      }
+    })
+  }
+  return ret;
 }
 //根据不同的编号画出一个正方形
 function drawSquare(number) {
-
   //获取总的编号
   let count = row*col;
-
   //传入的编号不得大于总编号
   if(number>0 && number<=count){
     //判断该编号在几排几列
     let numberCol=number%col==0?col:number%col;
     let numberRow=Math.ceil(Math.abs(number-numberCol)/col)+1
-
     //根据行列获取坐标
     let numberX=(numberCol-1)*size;
     let numberY=(numberRow-1)*size;
-
-
     //根据坐标画正方形
     ctx.fillStyle='#555555';
     ctx.fillRect(numberX,numberY,size,size)
@@ -103,62 +333,40 @@ function drawSquare(number) {
     ctx.stroke()
   }
 }
-
 //随机生成一个方块在顶部开始下落
-function random(current) {
+function random() {
   let number=col/2;
+  current = getNumRepeat(5);
   switch (current) {
+    //生成方块I
     case 1:currentList=[number,number-col,number-col*2,number-col*3];break;
-    case 2:currentList=[number,number+1,number-col,number-col*2];break;
+    //生成方块L
+    case 2:currentList=[number+1,number,number-col,number-col*2];break;
+    //生成方块O
     case 3:currentList=[number,number+1,number-col,number-col+1];break;
-    case 4:currentList=[number,number-col,number-col-1,number-col+1];break;
-    case 5:currentList=[number,number+1,number-col,number-col-1];break;
+    //生成方块T
+    case 4:currentList=[number,number-col+1,number-col,number-col-1];break;
+    //生成方块Z
+    case 5:currentList=[number+1,number,number-col,number-col-1];break;
   }
 }
 //随机生成1——5的数字
 function getNumRepeat (maxNum) {
   return Math.floor(Math.random()*maxNum)+1;
 }
-/**
- *生成五种方块I,L,O,T,Z
- */
-function drawBlock() {
-  currentList.map((item,index)=>{
-    drawSquare(item);
-  })
+//画出所有已存在的编号位置
+function drawaAll() {
+  if(currentList.length>0){
+    currentList.map((item,index)=>{
+      drawSquare(item);
+    })
+  }
+  if(existList.length>0){
+    existList.map((item,index)=>{
+      drawSquare(item);
+    })
+  }
 }
-
-function drawI(number) {
-  drawSquare(number)
-  drawSquare(number-col)
-  drawSquare(number-col*2)
-  drawSquare(number-col*3)
-}
-function drawL(number) {
-  drawSquare(number)
-  drawSquare(number+1)
-  drawSquare(number-col)
-  drawSquare(number-col*2)
-}
-function drawO(number) {
-  drawSquare(number)
-  drawSquare(number+1)
-  drawSquare(number-col)
-  drawSquare(number-col+1)
-}
-function drawT(number) {
-  drawSquare(number)
-  drawSquare(number-col)
-  drawSquare(number-col+1)
-  drawSquare(number-col-1)
-}
-function drawZ(number) {
-  drawSquare(number)
-  drawSquare(number+1)
-  drawSquare(number-col)
-  drawSquare(number-col-1)
-}
-
 </script>
 </div>
 </body>
